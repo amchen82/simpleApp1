@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
 import { Provider as PaperProvider, Appbar, TextInput, Button, List, FAB, IconButton } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { auth } from './firebase';
+import { signInWithGoogle, handleSignOut } from './services/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 
 interface Todo {
   id: string;
@@ -13,9 +16,14 @@ export default function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [newTodo, setNewTodo] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+    });
     loadTodos();
+    return () => unsubscribe();
   }, []);
 
   const loadTodos = async () => {
@@ -76,6 +84,20 @@ export default function App() {
       <View style={styles.container}>
         <Appbar.Header>
           <Appbar.Content title="Todo App" />
+          {user ? (
+            <>
+              <Appbar.Action icon="account" />
+              <Appbar.Action icon="logout" onPress={handleSignOut} />
+            </>
+          ) : (
+            <Button
+              mode="contained"
+              onPress={signInWithGoogle}
+              style={styles.loginButton}
+            >
+              Sign in
+            </Button>
+          )}
         </Appbar.Header>
 
         <View style={styles.inputContainer}>
@@ -147,5 +169,8 @@ const styles = StyleSheet.create({
   },
   completedTodo: {
     opacity: 0.5,
+  },
+  loginButton: {
+    marginRight: 8,
   },
 }); 
